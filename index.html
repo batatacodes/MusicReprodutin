@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6e45e2, #88d3ce);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #e0f7fa;
+            margin-bottom: 20px;
+        }
+
+        .user-id {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #ff758c, #ff7eb3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(45deg, #42e695, #3bb2b8);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:active {
+            transform: translateY(1px);
+        }
+
+        .music-list {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .music-list ol {
+            padding-left: 20px;
+        }
+
+        .music-list li {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .music-list li:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(5px);
+        }
+
+        .music-list .empty-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+            padding: 40px 0;
+        }
+
+        .add-button {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+            color: #333;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .add-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .add-button:active {
+            transform: translateY(1px);
+        }
+
+        .music-player {
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .music-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .remove-btn {
+            background: #ff758c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .storage-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DeepSeek Player</h1>
+            <p class="subtitle">Adicione suas músicas favoritas e curta o som!</p>
+            <div class="user-id">ID do Usuário: <span id="userId"></span></div>
+        </header>
+        
+        <div class="controls">
+            <button class="control-btn" id="sequentialBtn">Sequência</button>
+            <button class="control-btn" id="randomBtn">Ordem Aleatória</button>
+        </div>
+        
+        <div class="music-list">
+            <ol id="playlist">
+                <li class="empty-message">Sua lista de músicas está vazia</li>
+            </ol>
+        </div>
+        
+        <button class="add-button" id="addMusicBtn">+ Adicionar Música</button>
+        
+        <div class="storage-info">
+            <span>Armazenamento: <span id="storageType">Carregando...</span></span>
+            <span id="clearStorage" style="cursor: pointer; text-decoration: underline;">Limpar Dados</span>
+        </div>
+        
+        <input type="file" id="fileInput" accept="audio/*" multiple style="display: none;">
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const playlist = document.getElementById('playlist');
+            const addMusicBtn = document.getElementById('addMusicBtn');
+            const fileInput = document.getElementById('fileInput');
+            const sequentialBtn = document.getElementById('sequentialBtn');
+            const randomBtn = document.getElementById('randomBtn');
+            const userIdElement = document.getElementById('userId');
+            const storageTypeElement = document.getElementById('storageType');
+            const clearStorageBtn = document.getElementById('clearStorage');
+            
+            let musicCount = 0;
+            let currentMode = 'sequential';
+            let userId = getUserId();
+            let usingLocalStorage = false;
+            
+            // Exibir ID do usuário
+            userIdElement.textContent = userId;
+            
+            // Verificar qual tipo de armazenamento está disponível
+            checkStorageAvailability();
+            
+            // Carregar músicas salvas
+            loadMusicList();
+            
+            // Configurar o botão de adicionar música
+            addMusicBtn.addEventListener('click', function() {
+                if (musicCount >= 10) {
+                    alert('Você atingiu o limite máximo de 10 músicas!');
+                    return;
+                }
+                fileInput.click();
+            });
+            
+            // Processar arquivos selecionados
+            fileInput.addEventListener('change', function(e) {
+                const files = e.target.files;
+                
+                if (!files.length) return;
+                
+                for (let i = 0; i < files.length; i++) {
+                    if (musicCount >= 10) {
+                        alert('Limite de 10 músicas atingido. As músicas excedentes não foram adicionadas.');
+                        break;
+                    }
+                    
+                    if (files[i].type.startsWith('audio/')) {
+                        addMusicToList(files[i]);
+                        musicCount++;
+                    }
+                }
+                
+                // Salvar lista
+                saveMusicList();
+                
+                // Resetar o input
+                fileInput.value = '';
+            });
+            
+            // Adicionar música à lista
+            function addMusicToList(file) {
+                // Remover mensagem de lista vazia se existir
+                const emptyMessage = document.querySelector('.empty-message');
+                if (emptyMessage) {
+                    emptyMessage.remove();
+                }
+                
+                const fileURL = URL.createObjectURL(file);
+                const musicId = 'music_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                const listItem = document.createElement('li');
+                listItem.dataset.id = musicId;
+                listItem.dataset.filename = file.name;
+                listItem.dataset.type = file.type;
+                listItem.innerHTML = `
+                    <div class="music-info">
+                        <span>${file.name}</span>
+                        <button class="remove-btn">X</button>
+                    </div>
+                    <audio class="music-player" controls>
+                        <source src="${fileURL}" type="${file.type}">
+                        Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                `;
+                
+                // Adicionar evento de remoção
+                const removeBtn = listItem.querySelector('.remove-btn');
+                removeBtn.addEventListener('click', function() {
+                    listItem.remove();
+                    musicCount--;
+                    
+                    // Remover música do armazenamento
+                    removeMusicFromStorage(musicId);
+                    
+                    // Salvar lista atualizada
+                    saveMusicList();
+                    
+                    // Se não houver mais músicas, mostrar mensagem
+                    if (playlist.children.length === 0) {
+                        const emptyMsg = document.createElement('li');
+                        emptyMsg.classList.add('empty-message');
+                        emptyMsg.textContent = 'Sua lista de músicas está vazia';
+                        playlist.appendChild(emptyMsg);
+                    }
+                });
+                
+                // Armazenar a música
+                storeMusicFile(musicId, file);
+                
+                playlist.appendChild(listItem);
+            }
+            
+            // Configurar botão de sequência
+            sequentialBtn.addEventListener('click', function() {
+                currentMode = 'sequential';
+                sequentialBtn.classList.add('active');
+                randomBtn.classList.remove('active');
+                
+                // Salvar preferência
+                savePreference('playbackMode', 'sequential');
+                
+                alert('Modo sequencial ativado: as músicas tocarão na ordem em que foram adicionadas');
+            });
+            
+            // Configurar botão de ordem aleatória
+            randomBtn.addEventListener('click', function() {
+                currentMode = 'random';
+                randomBtn.classList.add('active');
+                sequentialBtn.classList.remove('active');
+                
+                // Salvar preferência
+                savePreference('playbackMode', 'random');
+                
+                alert('Modo aleatório ativado: as músicas tocarão em ordem aleatória');
+            });
+            
+            // Limpar dados de armazenamento
+            clearStorageBtn.addEventListener('click', function() {
+                if (confirm('Tem certeza que deseja limpar todos os dados? Isso removerá todas as músicas.')) {
+                    clearStorage();
+                    playlist.innerHTML = '<li class="empty-message">Sua lista de músicas está vazia</li>';
+                    musicCount = 0;
+                    alert('Todos os dados foram removidos.');
+                }
+            });
+            
+            // Gerar ou recuperar ID do usuário
+            function getUserId() {
+                let userId = getCookie('deepseek_user_id');
+                
+                if (!userId) {
+                    // Gerar um ID único para o usuário
+                    userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                    setCookie('deepseek_user_id', userId, 365);
+                }
+                
+                return userId;
+            }
+            
+            // Verificar disponibilidade de armazenamento
+            function checkStorageAvailability() {
+                try {
+                    if (typeof(Storage) !== "undefined") {
+                        usingLocalStorage = true;
+                        storageTypeElement.textContent = 'LocalStorage (Recomendado)';
+                    } else {
+                        usingLocalStorage = false;
+                        storageTypeElement.textContent = 'Cookies (LocalStorage não disponível)';
+                    }
+                } catch (e) {
+                    usingLocalStorage = false;
+                    storageTypeElement.textContent = 'Cookies (LocalStorage não disponível)';
+                }
+            }
+            
+            // Armazenar arquivo de música
+            function storeMusicFile(musicId, file) {
+                if (usingLocalStorage) {
+                    // Usar localStorage se disponível
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const musicData = {
+                            name: file.name,
+                            type: file.type,
+                            data: e.target.result
+                        };
+                        localStorage.setItem(`deepseek_music_${userId}_${musicId}`, JSON.stringify(musicData));
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // Usar cookies como fallback
+                    setCookie(`deepseek_music_${musicId}`, file.name, 30);
+                }
+            }
+            
+            // Salvar lista de músicas
+            function saveMusicList() {
+                const musicList = [];
+                document.querySelectorAll('#playlist li').forEach(li => {
+                    if (li.dataset.id) {
+                        musicList.push({
+                            id: li.dataset.id,
+                            filename: li.dataset.filename,
+                            type: li.dataset.type
+                        });
+                    }
+                });
+                
+                if (usingLocalStorage) {
+                    localStorage.setItem(`deepseek_music_list_${userId}`, JSON.stringify(musicList));
+                } else {
+                    setCookie('deepseek_music_list', JSON.stringify(musicList), 30);
+                }
+            }
+            
+            // Carregar lista de músicas
+            function loadMusicList() {
+                let musicList = [];
+                
+                if (usingLocalStorage) {
+                    const savedList = localStorage.getItem(`deepseek_music_list_${userId}`);
+                    if (savedList) {
+                        try {
+                            musicList = JSON.parse(savedList);
+                        } catch (e) {
+                            console.error('Erro ao carregar lista de músicas:', e);
+                        }
+                    }
+                } else {
+                    const savedList = getCookie('deepseek_music_list');
+                    if (savedList) {
+                        try {
+                            musicList = JSON.parse(savedList);
+                        } catch (e) {
+                            console.error('Erro ao carregar lista de músicas:', e);
+                        }
+                    }
+                }
+                
+                if (musicList.length > 0) {
+                    // Remover mensagem de lista vazia
+                    const emptyMessage = document.querySelector('.empty-message');
+                    if (emptyMessage) {
+                        emptyMessage.remove();
+                    }
+                    
+                    // Adicionar músicas à lista
+                    musicList.forEach(music => {
+                        if (usingLocalStorage) {
+                            // Recuperar do localStorage
+                            const musicData = localStorage.getItem(`deepseek_music_${userId}_${music.id}`);
+                            if (musicData) {
+                                try {
+                                    const parsedData = JSON.parse(musicData);
+                                    recreateMusicElement(music.id, parsedData.name, parsedData.type, parsedData.data);
+                                    musicCount++;
+                                } catch (e) {
+                                    console.error('Erro ao carregar música:', e);
+                                }
+                            }
+                        } else {
+                            // Recuperar do cookie - apenas o nome
+                            recreateMusicElement(music.id, music.filename, music.type, null);
+                            musicCount++;
+                        }
+                    });
+                }
+                
+                // Carregar preferências
+                loadPreferences();
+            }
+            
+            // Recriar elemento de música na lista
+            function recreateMusicElement(id, filename, type, data) {
+                const listItem = document.createElement('li');
+                listItem.dataset.id = id;
+                listItem.dataset.filename = filename;
+                listItem.dataset.type = type;
+                
+                let sourceUrl = '';
+                if (data) {
+                    sourceUrl = data; // URL de dados no formato dataURL
+                }
+                
+                listItem.innerHTML = `
+                    <div class="music-info">
+                        <span>${filename}</span>
+                        <button class="remove-btn">X</button>
+                    </div>
+                    <audio class="music-player" controls>
+                        <source src="${sourceUrl}" type="${type}">
+                        Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                `;
+                
+                // Adicionar evento de remoção
+                const removeBtn = listItem.querySelector('.remove-btn');
+                removeBtn.addEventListener('click', function() {
+                    listItem.remove();
+                    musicCount--;
+                    
+                    // Remover música do armazenamento
+                    removeMusicFromStorage(id);
+                    
+                    // Salvar lista atualizada
+                    saveMusicList();
+                    
+                    // Se não houver mais músicas, mostrar mensagem
+                    if (playlist.children.length === 0) {
+                        const emptyMsg = document.createElement('li');
+                        emptyMsg.classList.add('empty-message');
+                        emptyMsg.textContent = 'Sua lista de músicas está vazia';
+                        playlist.appendChild(emptyMsg);
+                    }
+                });
+                
+                playlist.appendChild(listItem);
+            }
+            
+            // Remover música do armazenamento
+            function removeMusicFromStorage(musicId) {
+                if (usingLocalStorage) {
+                    localStorage.removeItem(`deepseek_music_${userId}_${musicId}`);
+                } else {
+                    eraseCookie(`deepseek_music_${musicId}`);
+                }
+            }
+            
+            // Salvar preferências do usuário
+            function savePreference(key, value) {
+                if (usingLocalStorage) {
+                    localStorage.setItem(`deepseek_pref_${userId}_${key}`, value);
+                } else {
+                    setCookie(`deepseek_pref_${key}`, value, 30);
+                }
+            }
+            
+            // Carregar preferências do usuário
+            function loadPreferences() {
+                let mode = 'sequential';
+                
+                if (usingLocalStorage) {
+                    mode = localStorage.getItem(`deepseek_pref_${userId}_playbackMode`) || 'sequential';
+                } else {
+                    mode = getCookie('deepseek_pref_playbackMode') || 'sequential';
+                }
+                
+                currentMode = mode;
+                
+                if (mode === 'sequential') {
+                    sequentialBtn.classList.add('active');
+                    randomBtn.classList.remove('active');
+                } else {
+                    randomBtn.classList.add('active');
+                    sequentialBtn.classList.remove('active');
+                }
+            }
+            
+            // Limpar todo o armazenamento
+            function clearStorage() {
+                if (usingLocalStorage) {
+                    // Remover todas as músicas do localStorage
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith(`deepseek_music_${userId}_`) || key.startsWith(`deepseek_pref_${userId}_`)) {
+                            localStorage.removeItem(key);
+                        }
+                    }
+                } else {
+                    // Remover todos os cookies relacionados
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i];
+                        const eqPos = cookie.indexOf('=');
+                        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie;
+                        if (name.startsWith('deepseek_music_') || name.startsWith('deepseek_pref_')) {
+                            eraseCookie(name);
+                        }
+                    }
+                }
+            }
+            
+            // Funções auxiliares para manipulação de cookies
+            function setCookie(name, value, days) {
+                let expires = "";
+                if (days) {
+                    const date = new Date();
+                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                    expires = "; expires=" + date.toUTCString();
+                }
+                document.cookie = name + "=" + (value || "") + expires + "; path=/";
+            }
+            
+            function getCookie(name) {
+                const nameEQ = name + "=";
+                const ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+                }
+                return null;
+            }
+            
+            function eraseCookie(name) {
+                document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            }
+        });
+    </script>
+</body>
+</html>
